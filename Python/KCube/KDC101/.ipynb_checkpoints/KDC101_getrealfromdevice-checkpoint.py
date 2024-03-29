@@ -13,7 +13,7 @@ lib = cdll.LoadLibrary("Thorlabs.MotionControl.KCube.StepperMotor.dll")
 lib.TLI_InitializeSimulations()
 
 lib.TLI_BuildDeviceList()
-serialNumber = c_char_p(b"27257923")
+serialNumber = c_char_p(b"26000001")
 moveTimeout = 60.0
 
 stepsPerRev = 200
