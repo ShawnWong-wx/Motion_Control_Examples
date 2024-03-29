@@ -31,10 +31,10 @@ def main():
     lib: CDLL = cdll.LoadLibrary("Thorlabs.MotionControl.KCube.DCServo.dll")
 
     # Uncomment this line if you are using simulations
-    #lib.TLI_InitializeSimulations()
+    lib.TLI_InitializeSimulations()
 
     # Set constants
-    serial_num = c_char_p(b"27500125")
+    serial_num = c_char_p(b"27000001")
 
     # Open the device
     if lib.TLI_BuildDeviceList() == 0:
@@ -68,7 +68,7 @@ def main():
         print(f'Position after homing: {real_pos.value}')
 
         # set a new position in device units
-        new_pos_real = c_double(5.0)  # in real units
+        new_pos_real = c_double(20)  # in real units
         new_pos_dev = c_int()
         lib.CC_GetDeviceUnitFromRealValue(serial_num,
                                           new_pos_real,
