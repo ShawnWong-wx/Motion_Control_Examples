@@ -31,6 +31,7 @@ lib.SCC_GetPositionCounter(serialNumber)
 deviceUnit = c_int(lib.SCC_GetPositionCounter(serialNumber))
 realUnit = c_double()
 lib.SCC_GetRealValueFromDeviceUnit(serialNumber, deviceUnit, byref(realUnit), 0)
+
 print(realUnit)
 print(deviceUnit)
 
