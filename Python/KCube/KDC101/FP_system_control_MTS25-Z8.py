@@ -68,7 +68,7 @@ def main():
         print(f'Position after homing: {real_pos.value}')
 
         # set a new position in device units
-        new_pos_real = c_double(20)  # in real units
+        new_pos_real = c_double(10)  # in real units
         new_pos_dev = c_int()
         lib.CC_GetDeviceUnitFromRealValue(serial_num,
                                           new_pos_real,
@@ -84,7 +84,7 @@ def main():
 
         # Close the device
         lib.CC_Close(serial_num)
-    #lib.TLI_UninitializeSimulations()
+    lib.TLI_UninitializeSimulations()
 
     return
 
