@@ -26,7 +26,9 @@ lib.SCC_EnableChannel(serialNumber)
 time.sleep(3)
 lib.SCC_ClearMessageQueue(serialNumber)
 
-lib.SCC_SetMotorParamsExt(serialNumber, c_double(stepsPerRev), c_double(gearBoxRatio), c_double(pitch))
+lib.SCC_SetMotorParamsExt(
+    serialNumber, c_double(stepsPerRev), c_double(gearBoxRatio), c_double(pitch)
+)
 lib.SCC_GetPositionCounter(serialNumber)
 deviceUnit = c_int(lib.SCC_GetPositionCounter(serialNumber))
 realUnit = c_double()
@@ -44,14 +46,18 @@ messageType = c_ushort()
 messageID = c_ushort()
 messageData = c_ulong()
 while messageID.value != 0 or messageType.value != 2:
-    lib.SCC_WaitForMessage(serialNumber, byref(messageType), byref(messageID), byref(messageData))
+    lib.SCC_WaitForMessage(
+        serialNumber, byref(messageType), byref(messageID), byref(messageData)
+    )
     print(messageID, messageType)
 
 print("Homed")
-    
+
 lib.SCC_ClearMessageQueue(serialNumber)
 
-lib.SCC_SetMotorParamsExt(serialNumber, c_double(stepsPerRev), c_double(gearBoxRatio), c_double(pitch))
+lib.SCC_SetMotorParamsExt(
+    serialNumber, c_double(stepsPerRev), c_double(gearBoxRatio), c_double(pitch)
+)
 lib.SCC_LoadSettings(serialNumber)
 
 

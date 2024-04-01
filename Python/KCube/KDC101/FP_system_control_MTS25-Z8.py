@@ -8,6 +8,7 @@ It achieves control of the device via the Kinesis C API, interfaced with via cty
 and disconnects the device.
 
 """
+
 import time
 import os
 import sys
@@ -60,22 +61,18 @@ def main():
 
         # Convert device units to real units
         real_pos = c_double()
-        lib.CC_GetRealValueFromDeviceUnit(serial_num,
-                                          dev_pos,
-                                          byref(real_pos),
-                                          0)
+        lib.CC_GetRealValueFromDeviceUnit(serial_num, dev_pos, byref(real_pos), 0)
 
-        print(f'Position after homing: {real_pos.value}')
+        print(f"Position after homing: {real_pos.value}")
 
         # set a new position in device units
         new_pos_real = c_double(10)  # in real units
         new_pos_dev = c_int()
-        lib.CC_GetDeviceUnitFromRealValue(serial_num,
-                                          new_pos_real,
-                                          byref(new_pos_dev),
-                                          0)
+        lib.CC_GetDeviceUnitFromRealValue(
+            serial_num, new_pos_real, byref(new_pos_dev), 0
+        )
 
-        print(f'{new_pos_real.value} in Device Units: {new_pos_dev.value}')
+        print(f"{new_pos_real.value} in Device Units: {new_pos_dev.value}")
 
         # Move to new position as an absolute move.
         lib.CC_SetMoveAbsolutePosition(serial_num, new_pos_dev)
