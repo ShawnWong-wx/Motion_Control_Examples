@@ -1,3 +1,9 @@
+"""
+created by Xiao Wang 
+2:42 AM April 1 2024
+University of Arizona, Tucson, AZ
+"""
+
 from typing import Any
 import functools
 from pylablib.devices import Thorlabs
@@ -12,9 +18,9 @@ import math
 
 class FP_system_control(object):
     """
-    Fourier Ptychography system control Class
+    Class for Fourier Ptychography system control
     devices: MTS50-Z8 (thorlabs), Balser camera
-    dependencies: pylablib, pypylon
+    dependencies: pylablib, pypylon, OpenCV
     """
 
     def __init__(
@@ -130,14 +136,15 @@ class FP_system_control(object):
                 acceleration=self.acceleration,
             )
 
-            self.stage[SN].home(force=True)  # home the stage
-            self.stage[SN].wait_for_home()  # wait for "home"
-            time.sleep(2)  # wait to be stable
+            # self.stage[SN].home(force=True)  # home the stage
+            # self.stage[SN].wait_for_home()  # wait for "home"
+            # time.sleep(2)  # wait to be stable
+
             print("finished.", end=" ")
             print(f"current position: {self.stage[SN].get_position()} [mm]")
 
-        time.sleep(3)  # wait to be stable
-        print("translation stage(s) initialization finished! \n")
+        time.sleep(5)  # wait to be stable
+        print(f"stage(s) {self.motor_SN} initialization finished! \n")
 
     @_search_name
     def change_stage_name(
@@ -156,7 +163,7 @@ class FP_system_control(object):
             else:
                 print(f"cannot find stage {old_name}")
 
-        print(f"{operate_name_list} finished renaming!\n")
+        print(f"stage(s) {operate_name_list} finished renaming!\n")
         self.get_all_stage_name()
 
     @_search_name
@@ -176,7 +183,7 @@ class FP_system_control(object):
                 print(f"cannot find stage {name}")
 
         self.motor_SN = [device[0] for device in Thorlabs.list_kinesis_devices()]
-        print(f"{operate_name_list} finished close!\n")
+        print(f"stage(s) {operate_name_list} finished close!\n")
         self.get_all_stage_name()
 
     @_search_name
@@ -192,7 +199,7 @@ class FP_system_control(object):
             else:
                 print(f"cannot find stage {name}")
 
-            print()
+        print()
 
     @_search_name
     def get_stage_full_info(self, name_list: list = [], exit_list: list = []) -> None:
@@ -201,13 +208,18 @@ class FP_system_control(object):
         """
         for name, exit_flag in zip(name_list, exit_list):
             if exit_flag:
-                print(
-                    f"stage {name}'s current position: {self.stage[name].get_position()} [mm]"
-                )
+
+                print(f"stage {name}'s info:")
+
+                for key, value in self.stage[name].get_full_info().items():
+                    print(f"{key}: {value}")
+
+                print()
+                print()
             else:
                 print(f"cannot find stage {name}")
 
-            print()
+        print()
 
     @_search_name
     def home_stage(self, name_list: list = [], exit_list: list = []) -> None:
@@ -217,14 +229,17 @@ class FP_system_control(object):
         operate_name_list = []
         for name, exit_flag in zip(name_list, exit_list):
             if exit_flag:
+                print(f"homing stage {name}:", end=" ")
                 self.stage[name].home(force=True)  # home the stage
                 self.stage[name].wait_for_home()  # wait for "home"
+                operate_name_list.append(name)
                 time.sleep(2)  # wait to be stable
+                print(f"finished!")
+                self.get_stage_position(name)
             else:
                 print(f"cannot find stage {name}")
-
-            print(f"{operate_name_list} finished homing!\n")
-            self.get_stage_position()
+        time.sleep(5)
+        print(f"stage(s) {operate_name_list} finished homing!\n")
 
     @_search_name
     def move_stage(
@@ -236,13 +251,16 @@ class FP_system_control(object):
         operate_name_list = []
         for name, pos, exit_flag in zip(name_list, pos_list, exit_list):
             if exit_flag:
+                print(f"moving stage {name} to position {pos} [mm]:", end=" ")
                 self.stage[name].move_to(pos)
                 self.stage[name].wait_move()  # wait for moving
                 operate_name_list.append(name)
+                print("finished!")
             else:
                 print(f"cannot find stage {name}")
-        time.sleep(2)  # wait to be stable
-        print(f"{operate_name_list} finished homing!\n")
+
+        time.sleep(5)  # wait to be stable
+        print(f"stage(s) {operate_name_list} finished homing!\n")
         self.get_stage_position()
 
     def get_all_stage_name(self) -> None:
@@ -282,6 +300,8 @@ class FP_system_control(object):
           | /
           |/
           o------->x(+)
+
+        todo
         """
 
         pass
@@ -289,8 +309,13 @@ class FP_system_control(object):
     def rotate_obj(self, deg: float = 0) -> None:
         """
         rotate the object by degrees
+
+        todo
         """
         pass
 
     def cam_capture(self, frame_num: list = [], exp_time: list = []) -> None:
+        """
+        use camera to capture frames for each exposure times
+        """
         pass
