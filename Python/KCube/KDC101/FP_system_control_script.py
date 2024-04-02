@@ -4,22 +4,18 @@ created by Xiao Wang
 University of Arizona, Tucson, AZ
 """
 
-from typing import Any
-import functools
-from pylablib.devices import Thorlabs
-import time
-import numpy as np
-import sys
-import os
-import glob
+import inspect, functools, time, sys, glob, math
 import cv2
-import math
+from pylablib.devices import Thorlabs
+import pypylon.pylon as py
+import numpy as np
+from typing import Any
 
 
 class FP_system_control(object):
     """
     Class for Fourier Ptychography system control
-    devices: MTS50-Z8 (thorlabs), Balser camera
+    devices: MTS50-Z8 (thorlabs), Balser camera acA3088-57um
     dependencies: pylablib, pypylon, OpenCV
     """
 
@@ -42,7 +38,7 @@ class FP_system_control(object):
         ]  # translation stage serial number
         print(f"detected translation stage(s) S/N:\n{self.motor_SN}\n")
 
-        self.stage = {}  # translation stage objects
+        self.stage = {}  # store translation stage objects
 
         ## axis name 'x', 'y', 'z', and 'θ' for renaming translation stages
         self.axis = [chr(97 + 23 + i) for i in range(len(self.motor_SN))]
@@ -59,6 +55,9 @@ class FP_system_control(object):
         print("start to initialize all translation stages:")
         self.init_all_stage()  # initialize all translation stages
 
+        self.
+        self.camera = {}  # store Basler camera objects
+
     def __str__(self) -> str:
         """
         brief introduction
@@ -72,13 +71,73 @@ class FP_system_control(object):
         pass
 
     @staticmethod
-    def check_name(dict_, name):
+    def check_name(dict_, name) -> bool:
+        """
+        check if "name" is in "dict_"
+        """
         if name in dict_.keys():
             return True
         else:
             return False
 
-    def _search_name(func):
+    @staticmethod
+    def list_members(obj) -> None:
+        """
+        list all attributes and methods of "obj"
+        """
+        # Get members of obj using inspect
+        members = inspect.getmembers(obj)
+
+        # Separate attributes and methods
+        attributes = []
+        methods = []
+
+        for member in members:
+            if not inspect.isroutine(member[1]):
+                attributes.append(member)
+            else:
+                methods.append(member)
+
+        # Print labeled attributes and methods
+        print("Attributes:")
+        for attr in attributes:
+            print(f" - {attr[0]}")
+
+        print("\nMethods:")
+        for method in methods:
+            print(f" - {method[0]}")
+
+    def _search_cam_name(func):
+        """
+        decorator: check whether the input names are existed or not
+        """
+
+        @functools.wraps(func)  # keep original function name
+        def wrapper(self, *name_list, **new_name_dict):
+
+            name_list = list(name_list)
+            if name_list == []:  # choose all stages if name_list == []
+                name_list = list(self.camera.keys())
+
+            exist_list = list(
+                map(
+                    self.check_name,
+                    [self.stage.copy() for _ in range(len(name_list))],
+                    name_list,
+                )
+            )
+
+            if new_name_dict == {}:
+                return func(self, name_list, exist_list)
+            else:
+                return func(self, name_list, list(new_name_dict.values()), exist_list)
+
+        return wrapper
+
+    def _search_stage_name(func):
+        """
+        decorator: check whether the input names are existed or not
+        """
 
         @functools.wraps(func)  # keep original function name
         def wrapper(self, *name_list, **new_name_dict):
@@ -101,6 +160,14 @@ class FP_system_control(object):
                 return func(self, name_list, list(new_name_dict.values()), exist_list)
 
         return wrapper
+
+    def init_all_camera(
+        self,
+    ) -> None:
+        """
+        initialize all detected Basler cameras
+        """
+        pass
 
     def init_all_stage(
         self,
@@ -138,15 +205,15 @@ class FP_system_control(object):
 
             # self.stage[SN].home(force=True)  # home the stage
             # self.stage[SN].wait_for_home()  # wait for "home"
-            # time.sleep(2)  # wait to be stable
+            # time.sleep(1)  # wait to be stable
 
             print("finished.", end=" ")
             print(f"current position: {self.stage[SN].get_position()} [mm]")
 
-        time.sleep(5)  # wait to be stable
+        time.sleep(1)  # wait to be stable
         print(f"stage(s) {self.motor_SN} initialization finished! \n")
 
-    @_search_name
+    @_search_stage_name
     def change_stage_name(
         self, old_name_list: list = [], new_name_list: list = [], exit_list: list = []
     ) -> None:
@@ -166,7 +233,7 @@ class FP_system_control(object):
         print(f"stage(s) {operate_name_list} finished renaming!\n")
         self.get_all_stage_name()
 
-    @_search_name
+    @_search_stage_name
     def close_stages(self, name_list: list = [], exit_list: list = []) -> None:
         """
         turn off the connection to translation stage(s)
@@ -186,7 +253,7 @@ class FP_system_control(object):
         print(f"stage(s) {operate_name_list} finished close!\n")
         self.get_all_stage_name()
 
-    @_search_name
+    @_search_stage_name
     def get_stage_position(self, name_list: list = [], exit_list: list = []) -> None:
         """
         acquire translation stage's position in [mm]
@@ -201,7 +268,7 @@ class FP_system_control(object):
 
         print()
 
-    @_search_name
+    @_search_stage_name
     def get_stage_full_info(self, name_list: list = [], exit_list: list = []) -> None:
         """
         acquire the full info of translation stage
@@ -221,7 +288,7 @@ class FP_system_control(object):
 
         print()
 
-    @_search_name
+    @_search_stage_name
     def home_stage(self, name_list: list = [], exit_list: list = []) -> None:
         """
         home translation stage(s)
@@ -233,20 +300,20 @@ class FP_system_control(object):
                 self.stage[name].home(force=True)  # home the stage
                 self.stage[name].wait_for_home()  # wait for "home"
                 operate_name_list.append(name)
-                time.sleep(2)  # wait to be stable
+                time.sleep(1)  # wait to be stable
                 print(f"finished!")
                 self.get_stage_position(name)
             else:
                 print(f"cannot find stage {name}")
-        time.sleep(5)
+        time.sleep(1)
         print(f"stage(s) {operate_name_list} finished homing!\n")
 
-    @_search_name
+    @_search_stage_name
     def move_stage(
         self, name_list: list = [], pos_list: list = [], exit_list: list = []
     ) -> None:
         """
-        home translation stage(s)
+        move translation stage(s) to a position
         """
         operate_name_list = []
         for name, pos, exit_flag in zip(name_list, pos_list, exit_list):
@@ -259,7 +326,7 @@ class FP_system_control(object):
             else:
                 print(f"cannot find stage {name}")
 
-        time.sleep(5)  # wait to be stable
+        time.sleep(1)  # wait to be stable
         print(f"stage(s) {operate_name_list} finished homing!\n")
         self.get_stage_position()
 
