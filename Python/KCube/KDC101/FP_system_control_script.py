@@ -26,7 +26,6 @@ class FP_system_control(object):
         move_max_velocity=1,
         acceleration=1,
         home_direction="forward",
-        
         *args,
         **kwargs,
     ) -> None:
@@ -56,7 +55,6 @@ class FP_system_control(object):
         print("start to initialize all translation stages:")
         self.init_all_stage()  # initialize all translation stages
 
-        self.
         self.camera = {}  # store Basler camera objects
 
     def __str__(self) -> str:
