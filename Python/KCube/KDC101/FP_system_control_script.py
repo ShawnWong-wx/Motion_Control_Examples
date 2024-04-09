@@ -342,7 +342,7 @@ class FP_system_control(object):
 
         print()
 
-    def move_cam_xy(self, pos: "(x,y) coordiante" = []) -> None:
+    def move_cam_xy(self, pos=[]) -> None:
         """
         move the camera(s) to a (x,y) position
 
@@ -356,7 +356,7 @@ class FP_system_control(object):
 
         pass
 
-    def move_cam_xyz(self, pos: "(x,y,z) coordiante" = []) -> None:
+    def move_cam_xyz(self, pos=[]) -> None:
         """
         move the camera(s) to a (x,y,z) position
 
