@@ -25,7 +25,7 @@ class FP_system_control(object):
         move_min_velocity=0,
         move_max_velocity=1,
         acceleration=1,
-        home_direction="forward",
+        home_direction="reverse",
         *args,
         **kwargs,
     ) -> None:
@@ -340,12 +340,13 @@ class FP_system_control(object):
                 self.stage[name].move_to(pos)
                 self.stage[name].wait_move()  # wait for moving
                 operate_name_list.append(name)
+                time.sleep(1)  # wait to be stable
                 print("finished!")
             else:
                 print(f"cannot find stage {name}")
 
         time.sleep(1)  # wait to be stable
-        print(f"stage(s) {operate_name_list} finished homing!\n")
+        print(f"stage(s) {operate_name_list} finished moving!\n")
         self.get_stage_position()
 
     def get_all_stage_name(self) -> None:
@@ -361,7 +362,7 @@ class FP_system_control(object):
 
         print()
 
-    def move_cam_xy(self, pos=[]) -> None:
+    def move_cam_xy(self, pos=[], max_range=[50, 50]) -> None:
         """
         move the camera(s) to a (x,y) position
 
@@ -372,10 +373,14 @@ class FP_system_control(object):
           |
           o------->x(+)
         """
+        horizontal_move = -pos[0] + max_range[0] / 2
+        vertical_move = -pos[1] + max_range[1] / 2
+        self.move_stage(
+            "vertical", "horizontal", first=vertical_move, second=horizontal_move
+        )
+        print(f"camera(s) is(are) at {pos} [mm]!")
 
-        pass
-
-    def move_cam_xyz(self, pos=[]) -> None:
+    def move_cam_xyz(self, pos=[], max_range=[50.0, 50.0, 50.0]) -> None:
         """
         move the camera(s) to a (x,y,z) position
 
