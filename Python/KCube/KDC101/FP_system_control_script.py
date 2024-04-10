@@ -4,7 +4,7 @@ created by Xiao Wang
 University of Arizona, Tucson, AZ
 """
 
-import inspect, functools, time, sys, glob, math
+import inspect, functools, time, sys, glob, math, traceback, random
 import cv2
 from pylablib.devices import Thorlabs
 import pypylon.pylon as py
@@ -55,6 +55,11 @@ class FP_system_control(object):
         print("start to initialize all translation stages:")
         self.init_all_stage()  # initialize all translation stages
 
+        self.tlf = (
+            py.TlFactory.GetInstance()
+        )  # get instance of the pylon TransportLayerFactory
+        self.cam_devices = self.tlf.EnumerateDevices()
+        # self.camera_SN = [cam_device.GetSerialNumber() for cam_device in cam_devices] # Basler camera serial number
         self.camera = {}  # store Basler camera objects
 
     def __str__(self) -> str:
@@ -166,7 +171,21 @@ class FP_system_control(object):
         """
         initialize all detected Basler cameras
         """
-        pass
+        for i in len(self.cam_devices):
+            SN = self.cam_devices[i].GetSerialNumber()
+            self.camera[SN] = py.InstantCamera(
+                self.tlf.CreateDevice(self.cam_devices[i])
+            )
+            self.camera[SN].Open()
+            self.camera[SN].UserSetSelector = "Default"
+            self.camera[SN].UserSetLoad.Execute()
+            self.camera[SN].ExposureMode.Value = "Timed"
+            self.camera[SN].ExposureAuto.Value = "Off"
+            self.camera[SN].ExposureTime = self.camera[SN].ExposureTime.Min
+            self.camera[SN].AcquisitionFrameRateEnable.Value = True
+            self.camera[SN].PixelFormat.Value = "Mono8"
+            self.camera[SN].GainAuto.Value = "Off"
+            self.camera[SN].Gain.Value = 0
 
     def init_all_stage(
         self,
@@ -202,9 +221,9 @@ class FP_system_control(object):
                 acceleration=self.acceleration,
             )
 
-            # self.stage[SN].home(force=True)  # home the stage
-            # self.stage[SN].wait_for_home()  # wait for "home"
-            # time.sleep(1)  # wait to be stable
+            self.stage[SN].home(force=True)  # home the stage
+            self.stage[SN].wait_for_home()  # wait for "home"
+            time.sleep(1)  # wait to be stable
 
             print("finished.", end=" ")
             print(f"current position: {self.stage[SN].get_position()} [mm]")
@@ -380,8 +399,43 @@ class FP_system_control(object):
         """
         pass
 
-    def cam_capture(self, frame_num: list = [], exp_time: list = []) -> None:
+    def cam_capture(
+        self, cam_name: str, frame_num: int = 100, exp_time: float = 1000.0
+    ) -> None:
         """
         use camera to capture frames for each exposure times
+        return a averaged image
         """
-        pass
+        # fetch some images with foreground loop
+        cam = self.camera[cam_name]  # default is SN
+        cam.ExposureTime.Value = exp_time  # [μs]
+        img_sum = np.zeros((cam.Height.Value, cam.Width.Value), dtype=np.float32)
+        cam.StartGrabbingMax(frame_num)
+        while cam.IsGrabbing():
+            with cam.RetrieveResult(1000) as res:
+                if res.GrabSucceeded():
+                    img = res.Array
+                    img_sum += img
+                else:
+                    raise RuntimeError("Grab failed")
+        cam.StopGrabbing()
+        self.img_avrg = img_sum / frame_num
+        return self.img_avrg
+
+    def close_all_cams(
+        self,
+    ) -> None:
+        """
+        close all cameras
+        """
+        for name, cam_obj in self.camera.items():
+            self.camera[name].Close()
+
+    @staticmethod
+    def save_img(img, name: str, path: str) -> None:
+        """
+        save an image to the designated path
+        """
+        np.save(path + "/" + name + ".npy", img)
+        cv2.imwrite(path + "/" + name + ".bmp", img)
+        print(f"{name} is saved!")
